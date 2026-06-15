@@ -104,8 +104,8 @@ export default function SimuladorRobledo81() {
         {unit && (
           <div className="fade" key={unit.nom}>
             <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 18 }}>
-              <div style={{ flex: "0 0 auto", background: C.white, border: `1px solid ${C.borde}`, borderRadius: 16, padding: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <img src={PLAN_IMG[fd.img]} alt={`Planta ${floorKey}`} style={{ height: 240, width: "auto", display: "block", borderRadius: 8 }} />
+              <div style={{ flex: "1 1 240px", minWidth: 0, background: C.white, border: `1px solid ${C.borde}`, borderRadius: 16, padding: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <img src={PLAN_IMG[fd.img]} alt={`Planta ${floorKey}`} style={{ maxWidth: "100%", maxHeight: 260, width: "auto", height: "auto", objectFit: "contain", display: "block", margin: "0 auto", borderRadius: 8 }} />
               </div>
               <div style={{ flex: "1 1 300px", background: `linear-gradient(135deg, ${C.petroleo}, ${C.petroleo2})`, borderRadius: 16, padding: "22px 24px", color: C.white, display: "flex", flexDirection: "column", justifyContent: "center" }}>
                 <div style={{ fontSize: 11, letterSpacing: ".18em", color: C.verdeGlow, fontWeight: 600 }}>MODELO {unit.modelo.toUpperCase()}</div>
