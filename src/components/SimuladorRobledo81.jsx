@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { ChevronDown, BedDouble, Bath, Maximize2, Check, Printer, Wallet, CalendarClock, FileSignature, TrendingDown, Download } from "lucide-react";
-import { FLOOR_DATA, FLOOR_KEYS, SCHEMES, PLAN_IMG } from "../data/units";
+import { FLOOR_DATA as STATIC_FLOOR_DATA, SCHEMES, PLAN_IMG } from "../data/units";
+import { loadInventory } from "../data/loadInventory";
 
 const C = {
   petroleo: "#0E2B3D", petroleo2: "#143b50", carbon: "#162028",
@@ -19,6 +20,16 @@ export default function SimuladorRobledo81() {
   const [cliente, setCliente] = useState("");
   const [asesor, setAsesor] = useState("");
   const [showCot, setShowCot] = useState(false);
+  const [inventory, setInventory] = useState(null); // null = cargando
+
+  useEffect(() => {
+    loadInventory()
+      .then((data) => setInventory(data))
+      .catch(() => setInventory(STATIC_FLOOR_DATA));
+  }, []);
+
+  const FLOOR_DATA = inventory ?? STATIC_FLOOR_DATA;
+  const FLOOR_KEYS = Object.keys(FLOOR_DATA);
 
   const fd = floorKey ? FLOOR_DATA[floorKey] : null;
   const unit = fd ? fd.units.find((x) => x.nom === nom) || null : null;
@@ -47,10 +58,13 @@ export default function SimuladorRobledo81() {
       <style>{`
         @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         .fade{animation:fadeUp .35s ease both}
+        @page{size:letter;margin:12mm}
         @media print{
           body *{visibility:hidden !important}
-          #cot-print, #cot-print *{visibility:visible !important}
-          #cot-print{position:absolute !important;left:0;top:0;width:100%;box-shadow:none !important;border-radius:0 !important}
+          #cot-overlay{position:static !important;background:none !important;overflow:visible !important;padding:0 !important;display:block !important;inset:unset !important}
+          #cot-wrap{position:static !important;width:auto !important;max-width:none !important;display:block !important}
+          #cot-print,#cot-print *{visibility:visible !important;print-color-adjust:exact !important;-webkit-print-color-adjust:exact !important}
+          #cot-print{position:fixed !important;left:0 !important;right:0 !important;top:0 !important;width:auto !important;box-sizing:border-box !important;box-shadow:none !important;border-radius:0 !important;padding:24px 32px !important}
         }
       `}</style>
 
@@ -62,7 +76,9 @@ export default function SimuladorRobledo81() {
 
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "26px 20px 60px" }}>
         <div style={{ background: C.cremaCard, border: `1px solid ${C.borde}`, borderRadius: 16, padding: 22 }}>
-          <div style={{ fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase", fontWeight: 600, color: C.verde, marginBottom: 14 }}>Cotiza un departamento</div>
+          <div style={{ fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase", fontWeight: 600, color: C.verde, marginBottom: 14 }}>
+            {inventory === null ? "Cargando inventario…" : "Cotiza un departamento"}
+          </div>
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
             <Field label="Nivel / Piso" flex="1 1 240px">
               <Select value={floorKey} onChange={onFloor}>
@@ -184,8 +200,8 @@ export default function SimuladorRobledo81() {
       </div>
 
       {showCot && unit && scheme && calc && (
-        <div onClick={() => setShowCot(false)} style={{ position: "fixed", inset: 0, background: "rgba(14,43,61,.55)", zIndex: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "26px 12px" }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: 640, maxWidth: "100%" }}>
+        <div id="cot-overlay" onClick={() => setShowCot(false)} style={{ position: "fixed", inset: 0, background: "rgba(14,43,61,.55)", zIndex: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "26px 12px" }}>
+          <div id="cot-wrap" onClick={(e) => e.stopPropagation()} style={{ width: 640, maxWidth: "100%" }}>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
               <input placeholder="Nombre del cliente" value={cliente} onChange={(e) => setCliente(e.target.value)}
                 style={{ flex: "1 1 220px", border: `1.5px solid ${C.borde}`, borderRadius: 10, padding: "11px 13px", fontSize: 14, fontFamily: "inherit", color: C.carbon }} />
@@ -222,7 +238,7 @@ export default function SimuladorRobledo81() {
               <div style={{ marginTop: 20, background: C.crema, borderRadius: 12, padding: "18px 20px" }}>
                 <div style={{ fontSize: 11, letterSpacing: ".14em", color: C.verde, fontWeight: 600 }}>MODELO {unit.modelo.toUpperCase()}</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: C.petroleo }}>Departamento {unit.nom}</div>
-                <div style={{ display: "flex", gap: 26, marginTop: 12, fontSize: 13 }}>
+                <div style={{ display: "flex", gap: 26, marginTop: 12, fontSize: 13, flexWrap: "wrap" }}>
                   <span><b>{unit.m2} m²</b> superficie</span>
                   <span><b>{unit.rec}</b> {unit.rec > 1 ? "recámaras" : "recámara"}</span>
                   <span><b>{unit.ban}</b> {unit.ban > 1 ? "baños" : "baño"}</span>
