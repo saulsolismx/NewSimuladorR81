@@ -17,6 +17,46 @@ const parsePrice = (s) =>
 const parseM2 = (s) =>
   parseFloat(String(s).replace(",", ".").replace(/[^0-9.]/g, "")) || 0;
 
+// Precio fijo del estacionamiento (MXN)
+export const PARKING_PRICE = 390000;
+
+// Disponibilidad de estacionamiento. Se actualiza al cargar el CSV.
+// Fallback: 10 lugares, todos disponibles.
+export const parkingInfo = { total: 10, disponibles: 10 };
+
+// Busca la tabla "Estacionamiento" (encabezados "Lugar" y "Vendido") en el
+// mismo CSV, debajo de los departamentos, y cuenta los lugares disponibles.
+function parseParking(rows) {
+  const fallback = { total: 10, disponibles: 10 };
+  let headerIdx = -1, lugarCol = -1, vendidoCol = -1;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row) continue;
+    let lc = -1, vc = -1;
+    for (let c = 0; c < row.length; c++) {
+      const cell = String(row[c] ?? "").trim().toLowerCase();
+      if (cell === "lugar") lc = c;
+      if (cell === "vendido") vc = c;
+    }
+    if (lc !== -1 && vc !== -1) { headerIdx = i; lugarCol = lc; vendidoCol = vc; break; }
+  }
+  if (headerIdx === -1) return fallback;
+
+  let total = 0, disponibles = 0;
+  for (let i = headerIdx + 1; i < rows.length && total < 10; i++) {
+    const row = rows[i];
+    if (!row) continue;
+    const lugar = parseInt(String(row[lugarCol] ?? "").trim(), 10);
+    if (!Number.isFinite(lugar) || lugar < 1) continue;
+    total++;
+    const v = String(row[vendidoCol] ?? "").trim().toUpperCase();
+    if (!(v === "1" || v === "TRUE")) disponibles++;
+  }
+  if (total === 0) return fallback;
+  return { total, disponibles };
+}
+
 function buildInventory(rows) {
   const floors = {};
   for (const row of rows) {
@@ -45,5 +85,8 @@ export async function loadInventory() {
   if (!res.ok) throw new Error(`CSV fetch failed: ${res.status}`);
   const text = await res.text();
   const { data } = Papa.parse(text, { skipEmptyLines: false });
+  const parking = parseParking(data);
+  parkingInfo.total = parking.total;
+  parkingInfo.disponibles = parking.disponibles;
   return buildInventory(data);
 }

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { ChevronDown, BedDouble, Bath, Maximize2, Check, Printer, Wallet, CalendarClock, FileSignature, TrendingDown, Download } from "lucide-react";
 import { FLOOR_DATA as STATIC_FLOOR_DATA, SCHEMES, PLAN_IMG } from "../data/units";
-import { loadInventory } from "../data/loadInventory";
+import { loadInventory, parkingInfo, PARKING_PRICE } from "../data/loadInventory";
 
 const C = {
   petroleo: "#0E2B3D", petroleo2: "#143b50", carbon: "#162028",
@@ -16,6 +16,7 @@ export default function SimuladorRobledo81() {
   const [floorKey, setFloorKey] = useState("");
   const [nom, setNom] = useState("");
   const [schemeId, setSchemeId] = useState(null);
+  const [conEstacionamiento, setConEstacionamiento] = useState(false);
   const [meses, setMeses] = useState(12);
   const [cliente, setCliente] = useState("");
   const [asesor, setAsesor] = useState("");
@@ -34,14 +35,16 @@ export default function SimuladorRobledo81() {
   const fd = floorKey ? FLOOR_DATA[floorKey] : null;
   const unit = fd ? fd.units.find((x) => x.nom === nom) || null : null;
   const scheme = SCHEMES.find((s) => s.id === schemeId) || null;
+  const estac = conEstacionamiento ? PARKING_PRICE : 0;
   const calc = useMemo(() => {
     if (!unit || !scheme) return null;
-    const p = unit[scheme.priceKey];
-    return { precio: p, eng: p * scheme.eng / 100, msi: p * scheme.msi / 100, esc: p * scheme.esc / 100, mensual: p * scheme.msi / 100 / meses, ahorro: unit.n - p };
-  }, [unit, scheme, meses]);
+    const dep = unit[scheme.priceKey];
+    const p = dep + estac;
+    return { precio: p, dep, estac, eng: p * scheme.eng / 100, msi: p * scheme.msi / 100, esc: p * scheme.esc / 100, mensual: p * scheme.msi / 100 / meses, ahorro: unit.n - dep };
+  }, [unit, scheme, meses, estac]);
 
-  const onFloor = (e) => { setFloorKey(e.target.value); setNom(""); setSchemeId(null); };
-  const onUnit = (e) => { setNom(e.target.value); setSchemeId(null); };
+  const onFloor = (e) => { setFloorKey(e.target.value); setNom(""); setSchemeId(null); setConEstacionamiento(false); };
+  const onUnit = (e) => { setNom(e.target.value); setSchemeId(null); setConEstacionamiento(false); };
 
   const today = new Date();
   const fecha = today.toLocaleDateString("es-MX", { day: "2-digit", month: "long", year: "numeric" });
@@ -122,6 +125,22 @@ export default function SimuladorRobledo81() {
               </div>
             </div>
 
+            <div style={{ marginTop: 16, background: C.cremaCard, border: `1px solid ${C.borde}`, borderRadius: 16, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 14.5, fontWeight: 600, color: C.carbon }}>Agregar estacionamiento (+{fmt(PARKING_PRICE)})</div>
+                <div style={{ fontSize: 12, color: parkingInfo.disponibles === 0 ? C.rojo : C.taupe, marginTop: 3 }}>
+                  {parkingInfo.disponibles === 0 ? "Sin cajones disponibles" : `${parkingInfo.disponibles} de ${parkingInfo.total} disponibles`}
+                </div>
+              </div>
+              <button
+                onClick={() => parkingInfo.disponibles > 0 && setConEstacionamiento((v) => !v)}
+                disabled={parkingInfo.disponibles === 0}
+                aria-pressed={conEstacionamiento}
+                style={{ position: "relative", width: 52, height: 30, borderRadius: 999, border: "none", flexShrink: 0, cursor: parkingInfo.disponibles === 0 ? "not-allowed" : "pointer", background: conEstacionamiento ? C.verde : C.borde, opacity: parkingInfo.disponibles === 0 ? 0.5 : 1, transition: "background .15s" }}>
+                <span style={{ position: "absolute", top: 3, left: conEstacionamiento ? 25 : 3, width: 24, height: 24, borderRadius: "50%", background: "#fff", transition: "left .15s", boxShadow: "0 1px 3px rgba(0,0,0,.3)" }} />
+              </button>
+            </div>
+
             <div style={{ fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase", fontWeight: 600, color: C.verde, margin: "24px 0 12px" }}>Elige el plan de pago</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12 }}>
               {SCHEMES.map((s) => {
@@ -133,7 +152,7 @@ export default function SimuladorRobledo81() {
                       <span style={{ fontSize: 14.5, fontWeight: 600 }}>{s.label}</span>
                       {sel && <Check size={16} />}
                     </div>
-                    <div style={{ fontSize: 21, fontWeight: 700, margin: "7px 0 6px" }}>{fmt(unit[s.priceKey])}</div>
+                    <div style={{ fontSize: 21, fontWeight: 700, margin: "7px 0 6px" }}>{fmt(unit[s.priceKey] + estac)}</div>
                     <div style={{ fontSize: 11, opacity: .85 }}>{s.eng}% Eng · {s.msi}% Diferido · {s.esc}% Escritura</div>
                   </button>
                 );
@@ -258,6 +277,12 @@ export default function SimuladorRobledo81() {
                 </div>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
                   <tbody>
+                    {conEstacionamiento && (
+                      <>
+                        <CotRow l="Departamento" sub={`Modelo ${unit.modelo} · ${unit.m2} m²`} v={fmt(calc.dep)} />
+                        <CotRow l="Estacionamiento" sub="1 cajón" v={fmt(calc.estac)} />
+                      </>
+                    )}
                     <CotRow l={`Enganche (${scheme.eng}%)`} sub="Pago inicial" v={fmt(calc.eng)} />
                     <CotRow l={`Diferido (${scheme.msi}%)`} sub={`${meses} mensualidades de ${fmt(calc.mensual)}`} v={fmt(calc.msi)} />
                     <CotRow l={`Escritura (${scheme.esc}%)`} sub="Pago al escriturar" v={fmt(calc.esc)} />
