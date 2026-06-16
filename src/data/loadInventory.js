@@ -20,14 +20,20 @@ const parseM2 = (s) =>
 // Precio fijo del estacionamiento (MXN)
 export const PARKING_PRICE = 390000;
 
-// Disponibilidad de estacionamiento. Se actualiza al cargar el CSV.
 // Fallback: 10 lugares, todos disponibles.
-export const parkingInfo = { total: 10, disponibles: 10 };
+const parkingFallback = () => ({
+  total: 10,
+  disponibles: 10,
+  spots: Array.from({ length: 10 }, (_, i) => ({ lugar: i + 1, vendido: false })),
+});
+
+// Disponibilidad de estacionamiento. Se actualiza al cargar el CSV.
+export const parkingInfo = parkingFallback();
 
 // Busca la tabla "Estacionamiento" (encabezados "Lugar" y "Vendido") en el
-// mismo CSV, debajo de los departamentos, y cuenta los lugares disponibles.
+// mismo CSV, debajo de los departamentos, y lee el estado por lugar.
 function parseParking(rows) {
-  const fallback = { total: 10, disponibles: 10 };
+  const fallback = parkingFallback();
   let headerIdx = -1, lugarCol = -1, vendidoCol = -1;
 
   for (let i = 0; i < rows.length; i++) {
@@ -43,18 +49,22 @@ function parseParking(rows) {
   }
   if (headerIdx === -1) return fallback;
 
-  let total = 0, disponibles = 0;
-  for (let i = headerIdx + 1; i < rows.length && total < 10; i++) {
+  const spots = [];
+  for (let i = headerIdx + 1; i < rows.length && spots.length < 10; i++) {
     const row = rows[i];
     if (!row) continue;
     const lugar = parseInt(String(row[lugarCol] ?? "").trim(), 10);
     if (!Number.isFinite(lugar) || lugar < 1) continue;
-    total++;
     const v = String(row[vendidoCol] ?? "").trim().toUpperCase();
-    if (!(v === "1" || v === "TRUE")) disponibles++;
+    spots.push({ lugar, vendido: v === "1" || v === "TRUE" });
   }
-  if (total === 0) return fallback;
-  return { total, disponibles };
+  if (spots.length === 0) return fallback;
+  spots.sort((a, b) => a.lugar - b.lugar);
+  return {
+    total: spots.length,
+    disponibles: spots.filter((s) => !s.vendido).length,
+    spots,
+  };
 }
 
 function buildInventory(rows) {
@@ -88,5 +98,6 @@ export async function loadInventory() {
   const parking = parseParking(data);
   parkingInfo.total = parking.total;
   parkingInfo.disponibles = parking.disponibles;
+  parkingInfo.spots = parking.spots;
   return buildInventory(data);
 }

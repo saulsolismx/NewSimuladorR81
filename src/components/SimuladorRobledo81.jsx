@@ -139,6 +139,26 @@ export default function SimuladorRobledo81() {
                 style={{ position: "relative", width: 52, height: 30, borderRadius: 999, border: "none", flexShrink: 0, cursor: parkingInfo.disponibles === 0 ? "not-allowed" : "pointer", background: conEstacionamiento ? C.verde : C.borde, opacity: parkingInfo.disponibles === 0 ? 0.5 : 1, transition: "background .15s" }}>
                 <span style={{ position: "absolute", top: 3, left: conEstacionamiento ? 25 : 3, width: 24, height: 24, borderRadius: "50%", background: "#fff", transition: "left .15s", boxShadow: "0 1px 3px rgba(0,0,0,.3)" }} />
               </button>
+
+              <div style={{ width: "100%", marginTop: 8 }}>
+                <img src="/planos/estacionamiento.png" alt="Render del estacionamiento" style={{ maxWidth: "100%", maxHeight: 300, height: "auto", objectFit: "contain", display: "block", margin: "0 auto", borderRadius: 8 }} />
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginTop: 14 }}>
+                  {parkingInfo.spots.map((s) => (
+                    <span key={s.lugar} title={s.vendido ? "Vendido" : "Disponible"}
+                      style={{ width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: s.vendido ? C.rojo : C.verde, color: C.white, fontSize: 13.5, fontWeight: 700 }}>
+                      {s.lugar}
+                    </span>
+                  ))}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 14, justifyContent: "center", marginTop: 10, fontSize: 11.5, color: C.taupe }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ width: 12, height: 12, borderRadius: "50%", background: C.verde, display: "inline-block" }} /> Disponible
+                  </span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ width: 12, height: 12, borderRadius: "50%", background: C.rojo, display: "inline-block" }} /> Vendido
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div style={{ fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase", fontWeight: 600, color: C.verde, margin: "24px 0 12px" }}>Elige el plan de pago</div>
